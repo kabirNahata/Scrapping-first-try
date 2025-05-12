@@ -1,6 +1,9 @@
 from pyquery import PyQuery
 import requests
 import pandas as pd
+import datetime
+import time
+import random
 
 baseurl = "https://books.toscrape.com"
 main = "https://books.toscrape.com/catalogue/page-"
@@ -8,6 +11,7 @@ calalogue_pages = "https://books.toscrape.com/catalogue/"
 extension = ".html"
 
 all_books = []
+log_timer = []
 
 def loadbaseurl(baseurl):
     base_source = getSource(baseurl)
@@ -18,7 +22,7 @@ def loadbaseurl(baseurl):
 
     total_resuts = pq("form.form-horizontal strong:first").text()
     books_per_page = pq("form.form-horizontal strong:last").text()
-    print(f"total records found {total_resuts}, each page has {books_per_page}")
+    log_timer.append(f" total records found {total_resuts}, each page has {books_per_page}")
     
     total_pages = int(total_resuts) / int(books_per_page)
     if not isinstance(total_pages,float):
@@ -31,8 +35,11 @@ def get_pq(source):
     return PyQuery(source)
 
 def getSource(url):
+    r1 = random.randint(5, 10)
+    time.sleep(r1)
     response = requests.get(url)
-    # if response.status_code
+    if response.status_code != 200:
+        print("Couldnt get any response!")
     return response.text
     
 def book_detail(book):
@@ -40,7 +47,8 @@ def book_detail(book):
     name = book_page('article.product_page h1').text()
     price = book_page('article.product_page p.price_color').eq(0).text()
     if price:
-        price = price.replace('Â','').strip() 
+        price = price.split("£")[-1] 
+        price = int(price)
     rating = book_page('article.product_page p.star-rating ').attr('class')
     if rating:
         rating = rating.split()[-1] #if len(rating.split()) > 1 else rating
@@ -48,6 +56,7 @@ def book_detail(book):
     if stock:
         in_stock = stock.split('(')[0]
     qty = stock.split("(")[1].split(" ")[0]
+    qty = int(qty)
     category = book_page("ul.breadcrumb li").eq(2).text()
 
     return {
@@ -78,6 +87,7 @@ if __name__ == "__main__":
         for i in range(1, total_pages + 1): # while making this code there were 50 pages 2025
 
             url = f"{main}{i}{extension}"
+
             print(f"Staring with page {url}")  # Get the page content directly instead of writing to a file
            
             # Parse the content
@@ -95,15 +105,16 @@ if __name__ == "__main__":
                 count += 1
 
                 if i%3==0:
-                    print(f"...{i+1}. url:{book} -- {count}")
 
+                    print(f"...{i+1}. url:{book} -- {count}")
+            
                 every_books.append(book_detail(book))
+            curr_time = time.strftime("%H:%M:%S", time.localtime())
+            print(curr_time)
     else:
         print("Value no catch")
         print(type(total_pages))          
-        
-    # print(every_books)
-    # Print books from this page
+
     books_list = pd.DataFrame(every_books)
     file = books_list.to_csv('books_new.csv')
     print(books_list)
@@ -111,8 +122,6 @@ if __name__ == "__main__":
 
 
 # to_list 
-# 1. total number of products verify
 # 2. code clean
 # 3. write steps 
-# 4. include time, random seconds
-# 5. 
+# 5. do file handling... dont use pandas
