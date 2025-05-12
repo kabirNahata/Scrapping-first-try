@@ -2,81 +2,117 @@ from pyquery import PyQuery
 import requests
 import pandas as pd
 
+baseurl = "https://books.toscrape.com"
 main = "https://books.toscrape.com/catalogue/page-"
-pages = "https://books.toscrape.com/catalogue/"
+calalogue_pages = "https://books.toscrape.com/catalogue/"
 extension = ".html"
 
 all_books = []
 
+def loadbaseurl(baseurl):
+    base_source = getSource(baseurl)
+    pq = get_pq(base_source)
+
+    total_resuts = 0
+    books_per_page = 0
+
+    total_resuts = pq("form.form-horizontal strong:first").text()
+    books_per_page = pq("form.form-horizontal strong:last").text()
+    print(f"total records found {total_resuts}, each page has {books_per_page}")
+    
+    total_pages = int(total_resuts) / int(books_per_page)
+    if not isinstance(total_pages,float):
+        print("Pages not found..")
+        return 0,0
+    
+    return total_pages, books_per_page
+    
+def get_pq(source):
+    return PyQuery(source)
+
 def getSource(url):
     response = requests.get(url)
+    # if response.status_code
     return response.text
     
+def book_detail(book):
+    book_page = get_pq(getSource(book)) 
+    name = book_page('article.product_page h1').text()
+    price = book_page('article.product_page p.price_color').eq(0).text()
+    if price:
+        price = price.replace('Â','').strip() 
+    rating = book_page('article.product_page p.star-rating ').attr('class')
+    if rating:
+        rating = rating.split()[-1] #if len(rating.split()) > 1 else rating
+    stock = book_page('article.product_page p.availability').eq(0).text()
+    if stock:
+        in_stock = stock.split('(')[0]
+    qty = stock.split("(")[1].split(" ")[0]
+    category = book_page("ul.breadcrumb li").eq(2).text()
+
+    return {
+                        'url': book,
+                        'name': name,
+                        'price': price,
+                        'rating': rating,
+                        'stock': in_stock.strip(),
+                        'quantity': qty.strip(),
+                        'category': category
+                    }
+
 def readSource(content):
     return content.splitlines()
 
 if __name__ == "__main__":
 
     every_books = []
+    count = 0
+    total_pages, books_per_page = loadbaseurl(baseurl)
 
-    for i in range(1,51): # while making this code there were 50 pages 2025
-        url = f"{main}{i}{extension}"
-      
-        # Get the page content directly instead of writing to a file
-        source = getSource(url)
-        
-        # Parse the content
-        pq = PyQuery(source)
-        print(f"Books from page {i}:")
+    if not isinstance(books_per_page,int):
+        books_per_page = int(books_per_page)
 
-        for j in range(1,21):
-            page_url=pq('article.product_pod .image_container a').eq(j).attr('href')
-            if page_url:
-                price = ""
-                page_source = getSource(pages + page_url)
-                pq_page = PyQuery(page_source)
+    if total_pages > 0 and isinstance(total_pages,float):
+        total_pages = int(total_pages)
 
+        for i in range(1, total_pages + 1): # while making this code there were 50 pages 2025
 
-                name = pq_page('article.product_page h1').text()
-                price = pq_page('article.product_page p.price_color').eq(0).text()
-                if price:
-                    price = price.replace('Â','').strip() 
-                rating = pq_page('article.product_page p.star-rating ').attr('class')
-                if rating:
-                    rating = rating.split()[-1] #if len(rating.split()) > 1 else rating
-                stock = pq_page('article.product_page p.availability').eq(0).text()
-                if stock:
-                    in_stock = stock.split('(')[0]
-                    qty = stock.split("(")[1].split(" ")[0]
-                category = pq_page("ul.breadcrumb li").eq(2).text()
-            
-                    
-                every_books.append({
-                    'url': pages + page_url,
-                    'name': name,
-                    'price': price,
-                    'rating': rating,
-                    'stock': in_stock.strip(),
-                    'quantity': qty.strip(),
-                    'category': category
-                })
-            
+            url = f"{main}{i}{extension}"
+            print(f"Staring with page {url}")  # Get the page content directly instead of writing to a file
+           
+            # Parse the content
+            pq = get_pq(getSource(url))
+
+            book_urls = []
+            for book in pq('article.product_pod'):
+                book = pq(book)
+
+                url = book.find('h3 a').attr('href')
+                if len(url):
+                    book_urls.append(calalogue_pages + url)
+                        
+            for i, book in enumerate(book_urls):
+                count += 1
+
+                if i%3==0:
+                    print(f"...{i+1}. url:{book} -- {count}")
+
+                every_books.append(book_detail(book))
+    else:
+        print("Value no catch")
+        print(type(total_pages))          
         
     # print(every_books)
     # Print books from this page
     books_list = pd.DataFrame(every_books)
-    file = books_list.to_csv('books.csv')
+    file = books_list.to_csv('books_new.csv')
     print(books_list)
 
-# all_books_df = pd.DataFrame(all_books)
-# print("---"*20)
-# print(f"\nTotal books collected: {len(all_books)}")
-# print(all_books_df.head())
 
 
-to_list 
-1. total number of products verify
-2. code clean
-3. write steps 
-4. include time, random seconds
-5. 
+# to_list 
+# 1. total number of products verify
+# 2. code clean
+# 3. write steps 
+# 4. include time, random seconds
+# 5. 
