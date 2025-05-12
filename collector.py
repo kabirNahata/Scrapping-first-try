@@ -121,7 +121,4 @@ if __name__ == "__main__":
 
 
 
-# to_list 
-# 2. code clean
-# 3. write steps 
-# 5. do file handling... dont use pandas
+
