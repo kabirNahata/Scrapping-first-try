@@ -6,9 +6,10 @@ import time
 import random
 
 baseurl = "https://books.toscrape.com"
-main = "https://books.toscrape.com/catalogue/page-"
-calalogue_pages = "https://books.toscrape.com/catalogue/"
+main_page = "https://books.toscrape.com/catalogue/page-"
+catalogue_pages = "https://books.toscrape.com/catalogue/"
 extension = ".html"
+
 
 all_books = []
 log_timer = []
@@ -38,17 +39,22 @@ def getSource(url):
     r1 = random.randint(5, 10)
     time.sleep(r1)
     response = requests.get(url)
+    
     if response.status_code != 200:
         print("Couldnt get any response!")
+        return None
+
     return response.text
     
 def book_detail(book):
     book_page = get_pq(getSource(book)) 
     name = book_page('article.product_page h1').text()
     price = book_page('article.product_page p.price_color').eq(0).text()
+    print(price)
     if price:
         price = price.split("£")[-1] 
-        price = int(price)
+        price = float(price)
+        print(price)
     rating = book_page('article.product_page p.star-rating ').attr('class')
     if rating:
         rating = rating.split()[-1] #if len(rating.split()) > 1 else rating
@@ -65,17 +71,22 @@ def book_detail(book):
                         'price': price,
                         'rating': rating,
                         'stock': in_stock.strip(),
-                        'quantity': qty.strip(),
+                        'quantity': qty,
                         'category': category
                     }
 
 def readSource(content):
     return content.splitlines()
 
-if __name__ == "__main__":
+def get_time():
+    return time.strftime("%H:%M:%S", time.localtime())
+    
 
+def main():
+        
     every_books = []
     count = 0
+    print(f"Starting time {get_time()}")
     total_pages, books_per_page = loadbaseurl(baseurl)
 
     if not isinstance(books_per_page,int):
@@ -83,12 +94,11 @@ if __name__ == "__main__":
 
     if total_pages > 0 and isinstance(total_pages,float):
         total_pages = int(total_pages)
-
         for i in range(1, total_pages + 1): # while making this code there were 50 pages 2025
 
-            url = f"{main}{i}{extension}"
+            url = f"{main_page}{i}{extension}"
 
-            print(f"Staring with page {url}")  # Get the page content directly instead of writing to a file
+            print(f"Staring with page {url} - {get_time()}")  # Get the page content directly instead of writing to a file
            
             # Parse the content
             pq = get_pq(getSource(url))
@@ -99,18 +109,17 @@ if __name__ == "__main__":
 
                 url = book.find('h3 a').attr('href')
                 if len(url):
-                    book_urls.append(calalogue_pages + url)
+                    book_urls.append(catalogue_pages + url)
                         
             for i, book in enumerate(book_urls):
                 count += 1
 
                 if i%3==0:
 
-                    print(f"...{i+1}. url:{book} -- {count}")
+                    print(f"{get_time()}..{i+1}. url:{book} -- {count}")
             
                 every_books.append(book_detail(book))
-            curr_time = time.strftime("%H:%M:%S", time.localtime())
-            print(curr_time)
+            print(f"compelted time {get_time()}")
     else:
         print("Value no catch")
         print(type(total_pages))          
@@ -120,5 +129,12 @@ if __name__ == "__main__":
     print(books_list)
 
 
+if __name__ == "__main__":
+    main()
+ 
+
+# to do list 
+# 1. clean Code 
+# 2. change to file handling
 
 
