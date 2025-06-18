@@ -26,12 +26,11 @@ def main():
     json_code = pq("script#__NEXT_DATA__")
     # print(json_code.text())
     output = json_code.text()
-    with open("data.json", "w") as f:
-        json.dump(output, f)
 
-    
+    parsed_json = json.loads(output)
 
-
+    with open("data.json", "w", encoding='utf-8') as f:
+        json.dump(parsed_json, f, ensure_ascii=False, indent=4)
 
 if __name__ == "__main__":
     main()
