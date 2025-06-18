@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import time
 import random
+from word2number import w2n
 
 baseurl = "https://books.toscrape.com"
 main_page = "https://books.toscrape.com/catalogue/page-"
@@ -50,14 +51,13 @@ def book_detail(book):
     book_page = get_pq(getSource(book)) 
     name = book_page('article.product_page h1').text()
     price = book_page('article.product_page p.price_color').eq(0).text()
-    print(price)
     if price:
         price = price.split("£")[-1] 
         price = float(price)
-        print(price)
     rating = book_page('article.product_page p.star-rating ').attr('class')
     if rating:
-        rating = rating.split()[-1] #if len(rating.split()) > 1 else rating
+        raa = rating.split()[-1] #if len(rating.split()) > 1 else rating
+        rating = w2n.word_to_num(raa)
     stock = book_page('article.product_page p.availability').eq(0).text()
     if stock:
         in_stock = stock.split('(')[0]
@@ -81,7 +81,6 @@ def readSource(content):
 def get_time():
     return time.strftime("%H:%M:%S", time.localtime())
     
-
 def main():
         
     every_books = []
@@ -113,11 +112,10 @@ def main():
                         
             for i, book in enumerate(book_urls):
                 count += 1
-
+                
                 if i%3==0:
 
-                    print(f"{get_time()}..{i+1}. url:{book} -- {count}")
-            
+                    print(f"{get_time()} {i+1}. url:{book} -- {count}")
                 every_books.append(book_detail(book))
             print(f"compelted time {get_time()}")
     else:
